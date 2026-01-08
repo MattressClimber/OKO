@@ -1,0 +1,632 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		342C2FA42F0EEF010063F79E /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 342C2FA32F0EEF010063F79E /* Lottie */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3405E8F12F0B9F7C0014795B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3405E8D72F0B9F790014795B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3405E8DE2F0B9F790014795B;
+			remoteInfo = Oko;
+		};
+		3405E8FB2F0B9F7C0014795B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3405E8D72F0B9F790014795B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3405E8DE2F0B9F790014795B;
+			remoteInfo = Oko;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		344A436E2F0E20CA001B7035 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		3405E8DF2F0B9F790014795B /* Oko.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oko.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3405E8F02F0B9F7C0014795B /* OkoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OkoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3405E8FA2F0B9F7C0014795B /* OkoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OkoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		3405E9022F0B9F7C0014795B /* Exceptions for "Oko" folder in "Oko" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 3405E8DE2F0B9F790014795B /* Oko */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		3405E8E12F0B9F790014795B /* Oko */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3405E9022F0B9F7C0014795B /* Exceptions for "Oko" folder in "Oko" target */,
+			);
+			path = Oko;
+			sourceTree = "<group>";
+		};
+		3405E8F32F0B9F7C0014795B /* OkoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OkoTests;
+			sourceTree = "<group>";
+		};
+		3405E8FD2F0B9F7C0014795B /* OkoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OkoUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3405E8DC2F0B9F790014795B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				342C2FA42F0EEF010063F79E /* Lottie in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8ED2F0B9F7C0014795B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8F72F0B9F7C0014795B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3405E8D62F0B9F790014795B = {
+			isa = PBXGroup;
+			children = (
+				3405E8E12F0B9F790014795B /* Oko */,
+				3405E8F32F0B9F7C0014795B /* OkoTests */,
+				3405E8FD2F0B9F7C0014795B /* OkoUITests */,
+				342C2FA82F0EF1150063F79E /* Frameworks */,
+				3405E8E02F0B9F790014795B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3405E8E02F0B9F790014795B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3405E8DF2F0B9F790014795B /* Oko.app */,
+				3405E8F02F0B9F7C0014795B /* OkoTests.xctest */,
+				3405E8FA2F0B9F7C0014795B /* OkoUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		342C2FA82F0EF1150063F79E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3405E8DE2F0B9F790014795B /* Oko */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3405E9032F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "Oko" */;
+			buildPhases = (
+				3405E8DB2F0B9F790014795B /* Sources */,
+				3405E8DC2F0B9F790014795B /* Frameworks */,
+				3405E8DD2F0B9F790014795B /* Resources */,
+				344A436E2F0E20CA001B7035 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3405E8E12F0B9F790014795B /* Oko */,
+			);
+			name = Oko;
+			packageProductDependencies = (
+				342C2FA32F0EEF010063F79E /* Lottie */,
+			);
+			productName = Oko;
+			productReference = 3405E8DF2F0B9F790014795B /* Oko.app */;
+			productType = "com.apple.product-type.application";
+		};
+		3405E8EF2F0B9F7C0014795B /* OkoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3405E9082F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "OkoTests" */;
+			buildPhases = (
+				3405E8EC2F0B9F7C0014795B /* Sources */,
+				3405E8ED2F0B9F7C0014795B /* Frameworks */,
+				3405E8EE2F0B9F7C0014795B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3405E8F22F0B9F7C0014795B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3405E8F32F0B9F7C0014795B /* OkoTests */,
+			);
+			name = OkoTests;
+			packageProductDependencies = (
+			);
+			productName = OkoTests;
+			productReference = 3405E8F02F0B9F7C0014795B /* OkoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		3405E8F92F0B9F7C0014795B /* OkoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3405E90B2F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "OkoUITests" */;
+			buildPhases = (
+				3405E8F62F0B9F7C0014795B /* Sources */,
+				3405E8F72F0B9F7C0014795B /* Frameworks */,
+				3405E8F82F0B9F7C0014795B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3405E8FC2F0B9F7C0014795B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				3405E8FD2F0B9F7C0014795B /* OkoUITests */,
+			);
+			name = OkoUITests;
+			packageProductDependencies = (
+			);
+			productName = OkoUITests;
+			productReference = 3405E8FA2F0B9F7C0014795B /* OkoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3405E8D72F0B9F790014795B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1630;
+				LastUpgradeCheck = 1630;
+				TargetAttributes = {
+					3405E8DE2F0B9F790014795B = {
+						CreatedOnToolsVersion = 16.3;
+					};
+					3405E8EF2F0B9F7C0014795B = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 3405E8DE2F0B9F790014795B;
+					};
+					3405E8F92F0B9F7C0014795B = {
+						CreatedOnToolsVersion = 16.3;
+						TestTargetID = 3405E8DE2F0B9F790014795B;
+					};
+				};
+			};
+			buildConfigurationList = 3405E8DA2F0B9F790014795B /* Build configuration list for PBXProject "Oko" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 3405E8D62F0B9F790014795B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				342C2FA22F0EEF010063F79E /* XCRemoteSwiftPackageReference "lottie-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3405E8E02F0B9F790014795B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3405E8DE2F0B9F790014795B /* Oko */,
+				3405E8EF2F0B9F7C0014795B /* OkoTests */,
+				3405E8F92F0B9F7C0014795B /* OkoUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3405E8DD2F0B9F790014795B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8EE2F0B9F7C0014795B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8F82F0B9F7C0014795B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3405E8DB2F0B9F790014795B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8EC2F0B9F7C0014795B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3405E8F62F0B9F7C0014795B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3405E8F22F0B9F7C0014795B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3405E8DE2F0B9F790014795B /* Oko */;
+			targetProxy = 3405E8F12F0B9F7C0014795B /* PBXContainerItemProxy */;
+		};
+		3405E8FC2F0B9F7C0014795B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3405E8DE2F0B9F790014795B /* Oko */;
+			targetProxy = 3405E8FB2F0B9F7C0014795B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3405E9042F0B9F7C0014795B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Oko/Oko.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Oko/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Oko uses Bluetooth to connect to your water meter or gauge.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.Oko;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3405E9052F0B9F7C0014795B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Oko/Oko.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Oko/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Oko uses Bluetooth to connect to your water meter or gauge.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.Oko;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3405E9062F0B9F7C0014795B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		3405E9072F0B9F7C0014795B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		3405E9092F0B9F7C0014795B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.OkoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Oko.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Oko";
+			};
+			name = Debug;
+		};
+		3405E90A2F0B9F7C0014795B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.OkoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Oko.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Oko";
+			};
+			name = Release;
+		};
+		3405E90C2F0B9F7C0014795B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.OkoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Oko;
+			};
+			name = Debug;
+		};
+		3405E90D2F0B9F7C0014795B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HKTKW23XAM;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mattressclimberinc.OkoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Oko;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3405E8DA2F0B9F790014795B /* Build configuration list for PBXProject "Oko" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3405E9062F0B9F7C0014795B /* Debug */,
+				3405E9072F0B9F7C0014795B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3405E9032F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "Oko" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3405E9042F0B9F7C0014795B /* Debug */,
+				3405E9052F0B9F7C0014795B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3405E9082F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "OkoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3405E9092F0B9F7C0014795B /* Debug */,
+				3405E90A2F0B9F7C0014795B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3405E90B2F0B9F7C0014795B /* Build configuration list for PBXNativeTarget "OkoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3405E90C2F0B9F7C0014795B /* Debug */,
+				3405E90D2F0B9F7C0014795B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		342C2FA22F0EEF010063F79E /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		342C2FA32F0EEF010063F79E /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 342C2FA22F0EEF010063F79E /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 3405E8D72F0B9F790014795B /* Project object */;
+}
