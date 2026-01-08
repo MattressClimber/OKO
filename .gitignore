@@ -1,0 +1,40 @@
+User settings
+xcuserdata/
+
+Derived Data and Build folders
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+Swift Package Manager Caches
+.build/
+.swiftpm/
+
+Xcode artifacts
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcactivitylog
+User settings
+xcuserdata/
+
+Derived Data and Build folders
+DerivedData/
+build/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+Swift Package Manager Caches
+.build/
+.swiftpm/
+
+Xcode artifacts
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcactivitylog
