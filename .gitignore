@@ -38,3 +38,4 @@ Xcode artifacts
 *.moved-aside
 *.xcuserstate
 *.xcactivitylog
+.DS_Store
