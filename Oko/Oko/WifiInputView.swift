@@ -1,219 +1,457 @@
 import SwiftUI
+import Combine
 
 struct WifiInputView: View {
     @EnvironmentObject var manager: SetupManager
-    
-    // Local State
-    @State private var password = ""
-    @State private var selectedNetwork: String? = nil
     @FocusState private var isPasswordFocused: Bool
-    
-    // Mock Data
-    let networks = [
-        ("Home_WiFi_5G", true),
-        ("Guest_Network", false),
-        ("Office_Basement", true),
-        ("Linksys_Legacy", true),
-        ("Neighbor_Slow", true),
-        ("Hidden_Network", true)
-    ]
+    @State private var showPassword = false
+    @State private var isRefreshing = false
+    @State private var refreshTimer: Timer?
     
     var body: some View {
         ZStack {
-            // MARK: - BACKGROUND
+            // Background
             Color("BackgroundTheme")
-                .edgesIgnoringSafeArea(.all)
+                .ignoresSafeArea()
                 .onTapGesture {
-                    // Dismiss keyboard when tapping background
                     isPasswordFocused = false
                 }
             
-            // MARK: - MAIN CONTENT
             VStack(spacing: 0) {
                 // Header
-                HStack {
-                    Button(action: {
-                        if isPasswordFocused {
-                            isPasswordFocused = false
-                        } else {
-                            manager.goBack()
-                        }
-                    }) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.okoBold(size: 16))
-                        .foregroundColor(.secondary)
-                        .padding()
-                    }
-                    Spacer()
-                }
+                header
                 
                 // Title
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Select Network")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    Text("Choose a 2.4GHz network for better range.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 25)
-                .padding(.bottom, 20)
+                titleSection
                 
-                // Network List
-                ScrollViewReader { scrollProxy in
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            ForEach(networks, id: \.0) { network in
-                                NetworkRow(
-                                    name: network.0,
-                                    isLocked: network.1,
-                                    isSelected: selectedNetwork == network.0
-                                )
-                                .id(network.0) // For scrolling to
-                                .onTapGesture {
-                                    selectionHaptic()
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                        selectedNetwork = network.0
-                                        password = ""
-                                        isPasswordFocused = true // Auto-focus
+                // Content
+                if manager.bleManager.wifiNetworks.isEmpty && !isRefreshing {
+                    emptyState
+                } else if manager.bleManager.wifiNetworks.isEmpty {
+                    loadingState
+                } else {
+                    networkList
+                }
+            }
+            
+            // Bottom panel (appears when network selected)
+            if manager.selectedWiFiNetwork != nil {
+                VStack {
+                    Spacer()
+                    bottomPanel
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: manager.selectedWiFiNetwork != nil)
+        .onAppear {
+            startAutoRefresh()
+            // Initial scan
+            if manager.bleManager.wifiNetworks.isEmpty {
+                performWiFiScan()
+            }
+        }
+        .onDisappear {
+            stopAutoRefresh()
+        }
+    }
+    
+    // MARK: - Auto Refresh
+    private func startAutoRefresh() {
+        // Refresh every 5 seconds if no networks
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            if manager.bleManager.wifiNetworks.isEmpty && !isRefreshing {
+                performWiFiScan()
+            }
+        }
+    }
+    
+    private func stopAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+    
+    // MARK: - WiFi Scan Logic
+    private func performWiFiScan() {
+        guard !isRefreshing else { return }
+        
+        isRefreshing = true
+        manager.refreshWiFiNetworks()
+        
+        // Reset refreshing state after timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            isRefreshing = false
+        }
+    }
+    
+    // MARK: - Header
+    private var header: some View {
+        HStack {
+            Button(action: {
+                if isPasswordFocused {
+                    isPasswordFocused = false
+                } else {
+                    manager.goBack()
+                }
+            }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "chevron.left")
+                    Text("Back")
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            
+            Spacer()
+            
+            // Network count badge
+            if !manager.bleManager.wifiNetworks.isEmpty {
+                Text("\(manager.bleManager.wifiNetworks.count) networks")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(10)
+            }
+            
+            // Refresh button with animation
+            Button(action: {
+                performWiFiScan()
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Color.gray.opacity(0.1))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                        .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                }
+            }
+            .disabled(isRefreshing)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Title Section
+    private var titleSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Connect to WiFi")
+                .font(.title2.weight(.bold))
+                .foregroundColor(.primary)
+            
+            Text("Select your 2.4GHz network for best range")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
+    }
+    
+    // MARK: - Empty State
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 50))
+                .foregroundColor(.secondary)
+            
+            Text("No networks found")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Button(action: performWiFiScan) {
+                HStack {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Scan Again")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Color.blue)
+                .cornerRadius(20)
+            }
+            
+            Text("Make sure you're near your router\nand the device is powered on")
+                .font(.caption)
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
+            
+            Spacer()
+            Spacer()
+        }
+    }
+    
+    // MARK: - Loading State
+    private var loadingState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            ProgressView()
+                .scaleEffect(1.3)
+            
+            Text("Scanning for networks...")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            Spacer()
+        }
+    }
+    
+    // MARK: - Network List
+    private var networkList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 10) {
+                    ForEach(manager.bleManager.wifiNetworks) { network in
+                        NetworkRow(
+                            network: network,
+                            isSelected: manager.selectedWiFiNetwork?.ssid == network.ssid
+                        )
+                        .id(network.ssid)
+                        .onTapGesture {
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
+                            
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                if manager.selectedWiFiNetwork?.ssid == network.ssid {
+                                    manager.selectedWiFiNetwork = nil
+                                    manager.wifiPassword = ""
+                                    isPasswordFocused = false
+                                } else {
+                                    manager.selectedWiFiNetwork = network
+                                    manager.wifiPassword = ""
+                                    if network.isSecure {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            isPasswordFocused = true
+                                        }
                                     }
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
-                        // Dynamic padding: If panel is up, add extra space so list isn't hidden
-                        .padding(.bottom, selectedNetwork != nil ? 250 : 20)
-                    }
-                    .onChange(of: isPasswordFocused) { focused in
-                        // If keyboard comes up and we have a selection, scroll to it
-                        if focused, let selected = selectedNetwork {
-                            withAnimation {
-                                scrollProxy.scrollTo(selected, anchor: .center)
-                            }
-                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, manager.selectedWiFiNetwork != nil ? 300 : 20)
             }
-            
-            // MARK: - BOTTOM ACTION PANEL
-            // By placing this in a ZStack aligned to bottom, it will sit on top of the list.
-            // Because we DO NOT ignore the keyboard safe area, the system moves the "bottom"
-            // of this view up when the keyboard appears.
-            VStack {
-                Spacer() // Pushes the panel to the bottom
-                
-                if let selected = selectedNetwork {
-                    VStack(spacing: 20) {
-                        // Password Field
-                        HStack {
-                            Image(systemName: "key.fill")
-                                .foregroundColor(.secondary)
-                            
-                            if #available(iOS 15.0, *) {
-                                SecureField("Password for \(selected)", text: $password)
-                                    .focused($isPasswordFocused)
-                                    .submitLabel(.join)
-                                    .onSubmit {
-                                        if !password.isEmpty { manager.devSkipForward() }
-                                    }
-                            } else {
-                                SecureField("Password for \(selected)", text: $password)
-                            }
-                        }
-                        .padding()
-                        .background(Color(UIColor.systemGray6))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(isPasswordFocused ? Color.green : Color.clear, lineWidth: 1)
-                        )
-                        
-                        // Connect Button
-                        Button(action: {
-                            isPasswordFocused = false
-                            manager.devSkipForward()
-                        }) {
-                            HStack {
-                                Text("Connect Device")
-                                    .fontWeight(.bold)
-                                Image(systemName: "arrow.right")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(password.isEmpty ? Color.gray.opacity(0.3) : Color.green)
-                            .foregroundColor(password.isEmpty ? .secondary : .black)
-                            .cornerRadius(12)
-                        }
-                        .disabled(password.isEmpty)
+            .onChange(of: manager.selectedWiFiNetwork) { selected in
+                if let ssid = selected?.ssid {
+                    withAnimation {
+                        proxy.scrollTo(ssid, anchor: .center)
                     }
-                    .padding(25)
-                    .background(Color(UIColor.systemBackground))
-                    .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: -5)
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 25, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 25))
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
-        // NOTE: No .ignoresSafeArea(.keyboard) here.
-        // This allows the ZStack bounds to shrink when keyboard appears.
     }
     
-    private func selectionHaptic() {
-        let impact = UIImpactFeedbackGenerator(style: .light)
-        impact.impactOccurred()
+    // MARK: - Bottom Panel
+    private var bottomPanel: some View {
+        VStack(spacing: 16) {
+            // Connection status banner
+            if manager.isConnectingToWiFi {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                    Text("Testing connection...")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.primary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.blue.opacity(0.15))
+                .cornerRadius(10)
+            }
+            
+            // Error message
+            if let error = manager.wifiConnectionError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text(error)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Button("Retry") {
+                        manager.wifiConnectionError = nil
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.orange.opacity(0.15))
+                .cornerRadius(10)
+            }
+            
+            // Password field
+            if let network = manager.selectedWiFiNetwork, network.isSecure {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                        .frame(width: 20)
+                    
+                    ZStack(alignment: .leading) {
+                        if manager.wifiPassword.isEmpty {
+                            Text("Password")
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
+                        
+                        if showPassword {
+                            TextField("", text: $manager.wifiPassword)
+                                .focused($isPasswordFocused)
+                                .submitLabel(.join)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .onSubmit(submitPassword)
+                        } else {
+                            SecureField("", text: $manager.wifiPassword)
+                                .focused($isPasswordFocused)
+                                .submitLabel(.join)
+                                .onSubmit(submitPassword)
+                        }
+                    }
+                    
+                    // Show/hide password
+                    Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
+                        .foregroundColor(.secondary)
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            showPassword.toggle()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isPasswordFocused = true
+                            }
+                        }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isPasswordFocused ? Color.green : Color.clear, lineWidth: 2)
+                )
+                .disabled(manager.isConnectingToWiFi)
+            }
+            
+            // Connect Button
+            Button(action: submitPassword) {
+                HStack(spacing: 8) {
+                    if manager.isConnectingToWiFi {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                        Text("Connecting...")
+                    } else {
+                        Text("Connect")
+                        Image(systemName: "arrow.right")
+                    }
+                }
+                .font(.headline)
+                .foregroundColor(canConnect ? .black : .gray)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(canConnect ? Color.green : Color.gray.opacity(0.3))
+                .cornerRadius(14)
+            }
+            .disabled(!canConnect)
+        }
+        .padding(24)
+        .background(
+            Color("BackgroundTheme")
+                .shadow(color: .black.opacity(0.1), radius: 20, y: -10)
+        )
+        .cornerRadius(24, corners: [.topLeft, .topRight])
+    }
+    
+    // MARK: - Helpers
+    private var canConnect: Bool {
+        guard let network = manager.selectedWiFiNetwork else { return false }
+        if manager.isConnectingToWiFi { return false }
+        if network.isSecure && manager.wifiPassword.isEmpty { return false }
+        return true
+    }
+    
+    private func submitPassword() {
+        guard canConnect else { return }
+        isPasswordFocused = false
+        manager.connectToSelectedWiFi()
     }
 }
 
-// Keeping the helper shape and subview consistent
+// MARK: - Network Row
 struct NetworkRow: View {
-    let name: String
-    let isLocked: Bool
+    let network: WiFiNetwork
     let isSelected: Bool
     
     var body: some View {
-        HStack {
-            Image(systemName: "wifi")
+        HStack(spacing: 14) {
+            Image(systemName: signalIcon)
+                .font(.system(size: 18))
                 .foregroundColor(isSelected ? .black : .primary)
-            Text(name)
-                .fontWeight(.medium)
+                .frame(width: 24)
+            
+            Text(network.ssid)
+                .font(.body.weight(.medium))
                 .foregroundColor(isSelected ? .black : .primary)
+                .lineLimit(1)
+            
             Spacer()
-            if isLocked {
+            
+            if network.isSecure {
                 Image(systemName: "lock.fill")
                     .font(.caption)
                     .foregroundColor(isSelected ? .black.opacity(0.6) : .secondary)
             }
+            
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.black)
+            }
         }
-        .padding()
-        .background(isSelected ? Color.green : Color(UIColor.systemGray6))
-        .cornerRadius(10)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(name), \(isLocked ? "Secure" : "Open") network")
-        .accessibilityAddTraits(isSelected ? .isSelected : .isButton)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(isSelected ? Color.green : Color.gray.opacity(0.08))
+        .cornerRadius(12)
+    }
+    
+    private var signalIcon: String {
+        switch network.signalStrength {
+        case 3: return "wifi"
+        case 2: return "wifi"
+        case 1: return "wifi.exclamationmark"
+        default: return "wifi.slash"
+        }
     }
 }
 
-struct UnevenRoundedRectangle: Shape {
-    var topLeadingRadius: CGFloat
-    var bottomLeadingRadius: CGFloat
-    var bottomTrailingRadius: CGFloat
-    var topTrailingRadius: CGFloat
+// MARK: - Corner Radius Extension
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
 
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(
             roundedRect: rect,
-            byRoundingCorners: [
-                topLeadingRadius > 0 ? .topLeft : [],
-                topTrailingRadius > 0 ? .topRight : [],
-                bottomLeadingRadius > 0 ? .bottomLeft : [],
-                bottomTrailingRadius > 0 ? .bottomRight : []
-            ].reduce(into: UIRectCorner()) { $0.insert($1) },
-            cornerRadii: CGSize(width: topLeadingRadius, height: topLeadingRadius)
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
     }

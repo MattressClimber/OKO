@@ -4,7 +4,7 @@ import CoreBluetooth
 
 // MARK: - DATA MODELS
 
-// 1. The definition for a single Oko unit (Codable for saving)
+/// Represents a single OKO device
 struct OkoDevice: Identifiable, Equatable, Codable {
     var id = UUID()
     var name: String
@@ -12,6 +12,8 @@ struct OkoDevice: Identifiable, Equatable, Codable {
     var installDate: Date
     var lastReading: String
     var status: DeviceStatus
+    var batteryPercent: Int
+    var peripheralIdentifier: String?  // BLE identifier for reconnection
     
     enum DeviceStatus: String, Codable {
         case learning
@@ -19,9 +21,13 @@ struct OkoDevice: Identifiable, Equatable, Codable {
         case leakDetected
         case offline
     }
+    
+    static func == (lhs: OkoDevice, rhs: OkoDevice) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
-// 2. The steps of the setup flow
+/// The steps of the setup flow
 enum SetupState {
     case welcome
     case modeSelection
@@ -37,32 +43,37 @@ enum SetupState {
 class SetupManager: ObservableObject {
     @Published var currentState: SetupState = .welcome
     
-    // THE ENGINE
+    // THE BLE ENGINE
     @Published var bleManager = BluetoothManager()
     private var cancellables = Set<AnyCancellable>()
     
     // SETUP FLOW TEMP DATA
     @Published var tempSelectedMode: String = "Water"
     @Published var tempDeviceLabel: String = ""
-    @Published var foundNetworks: [(String, Bool)] = [] // Stores Wi-Fi list from ESP32
+    @Published var selectedWiFiNetwork: WiFiNetwork?
+    @Published var wifiPassword: String = ""
     
-    // FLEET MANAGEMENT (Holds all your devices)
+    // WiFi connection state
+    @Published var isConnectingToWiFi: Bool = false
+    @Published var wifiConnectionError: String?
+    
+    // FLEET MANAGEMENT
     @Published var devices: [OkoDevice] = []
     @Published var currentDeviceIndex: Int = 0
     
-    // Helper to get the active device safely
+    /// Helper to get the active device safely
     var activeDevice: OkoDevice? {
         if devices.indices.contains(currentDeviceIndex) {
             return devices[currentDeviceIndex]
         }
         return nil
     }
+    
+    // MARK: - Initialization
 
     init() {
-        // 1. Load saved data on launch
         loadDevices()
         
-        // 2. Set the initial view
         if !devices.isEmpty {
             print("💾 Saved devices found. Jumping to Dashboard.")
             currentState = .dashboard
@@ -70,63 +81,127 @@ class SetupManager: ObservableObject {
             currentState = .welcome
         }
         
-        // 3. Setup Bluetooth Observers
         setupBluetoothBindings()
     }
     
     // MARK: - BLUETOOTH BINDINGS
     
     private func setupBluetoothBindings() {
-        // NOTE: We removed the "Auto-Connect" logic here.
-        // We now wait for the USER to select a device in ScanningView.
-        
-        // Observer: When connected, move to next screen automatically
+        // When BLE connects, move to label input
         bleManager.$isConnected
-            .filter { $0 == true } // Only when true
-            .receive(on: RunLoop.main) // Ensure UI updates on main thread
+            .filter { $0 == true }
+            .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                print("✅ Connected! Moving to Label Input.")
-                self?.advanceFromScanning()
+                guard let self = self else { return }
+                // Only advance if we're in scanning state
+                if self.currentState == .scanning {
+                    print("✅ Connected! Moving to Label Input.")
+                    self.advanceFromScanning()
+                }
             }
             .store(in: &cancellables)
+        
+        // When device is ready (all characteristics discovered), request WiFi scan
+        bleManager.$isReady
+            .filter { $0 == true }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                print("🔵 Device ready - WiFi networks will be scanned automatically")
+            }
+            .store(in: &cancellables)
+        
+        // Monitor WiFi connection status
+        bleManager.$wifiStatus
+            .receive(on: RunLoop.main)
+            .sink { [weak self] status in
+                guard let self = self else { return }
+                
+                switch status {
+                case .connecting:
+                    self.isConnectingToWiFi = true
+                    self.wifiConnectionError = nil
+                    
+                case .connected(let ip):
+                    self.isConnectingToWiFi = false
+                    self.wifiConnectionError = nil
+                    print("✅ WiFi connected with IP: \(ip)")
+                    // Auto-advance to camera alignment
+                    if self.currentState == .wifiInput {
+                        withAnimation { self.currentState = .cameraAlign }
+                    }
+                    
+                case .failed(let error):
+                    self.isConnectingToWiFi = false
+                    self.wifiConnectionError = error
+                    print("❌ WiFi connection failed: \(error)")
+                    
+                case .disconnected:
+                    self.isConnectingToWiFi = false
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Update device status when received
+        bleManager.$deviceStatus
+            .compactMap { $0 }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] status in
+                self?.updateActiveDeviceFromStatus(status)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateActiveDeviceFromStatus(_ status: DeviceStatus) {
+        guard var device = activeDevice,
+              let index = devices.firstIndex(where: { $0.id == device.id }) else { return }
+        
+        if let battery = status.battery {
+            device.batteryPercent = battery
+        }
+        if let reading = status.reading {
+            device.lastReading = "\(reading) L"
+        }
+        if let baselineComplete = status.baselineComplete {
+            device.status = baselineComplete ? .ok : .learning
+        }
+        
+        devices[index] = device
+        saveDevices()
     }
     
     // MARK: - ACTIONS
     
     func startNewSetup() {
-            // Reset temp variables
-            tempSelectedMode = "Water"
-            tempDeviceLabel = ""
-            foundNetworks = []
-            
-            // Reset Bluetooth scanning
-            bleManager.stopScanning()
-            
-            // FIX: 'foundDevice' no longer exists. We clear the connected one instead.
-            bleManager.connectedPeripheral = nil
-            
-            bleManager.discoveredDevices.removeAll()
-            bleManager.isConnected = false
-            
-            currentState = .welcome
-        }
+        // Reset temp variables
+        tempSelectedMode = "Water"
+        tempDeviceLabel = ""
+        selectedWiFiNetwork = nil
+        wifiPassword = ""
+        wifiConnectionError = nil
+        isConnectingToWiFi = false
+        
+        // Reset Bluetooth
+        bleManager.disconnect()
+        bleManager.discoveredDevices.removeAll()
+        
+        currentState = .welcome
+    }
+    
     func selectMode(_ mode: String) {
-        self.tempSelectedMode = mode
+        tempSelectedMode = mode
         withAnimation { currentState = .scanning }
         
-        // Trigger scanning only after mode selection
-        print("🔍 Starting Scan for \(mode)...")
+        print("🔍 Starting scan for \(mode) devices...")
         bleManager.startScanning()
     }
     
-    // Called when user taps a device in the list (ScanningView)
+    /// Called when user taps a device in the list
     func userDidSelectDevice(_ device: CBPeripheral) {
         print("👆 User selected: \(device.name ?? "Unknown")")
         bleManager.connect(to: device)
     }
     
     private func advanceFromScanning() {
-        // Give a tiny delay for UX transition?
         withAnimation { currentState = .labelInput }
     }
     
@@ -134,28 +209,48 @@ class SetupManager: ObservableObject {
         // Dismiss keyboard
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         
-        // TEST DATA: Populate fake Wi-Fi networks so the next screen isn't empty
-        // (Remove this once we have real data parsing from ESP32)
-        self.foundNetworks = [("Home_WiFi_5G", true), ("Guest_Network", false), ("Office", true)]
+        // Send device config to ESP32
+        bleManager.sendDeviceConfig(label: tempDeviceLabel, type: tempSelectedMode)
         
+        // The WiFi networks should already be loaded from automatic scan
         withAnimation { currentState = .wifiInput }
     }
     
+    func connectToSelectedWiFi() {
+        guard let network = selectedWiFiNetwork else {
+            print("❌ No network selected")
+            return
+        }
+        
+        print("📶 Connecting to \(network.ssid)...")
+        bleManager.sendWiFiCredentials(ssid: network.ssid, password: wifiPassword)
+    }
+    
+    func refreshWiFiNetworks() {
+        bleManager.scanWiFiNetworks()
+    }
+    
     func completeSetup() {
-        // Create the new device
+        // Send ROI to device (will be called from CameraAlignView)
+        
+        // Create the new device entry
         let newDevice = OkoDevice(
-            name: tempDeviceLabel.isEmpty ? "New OKO" : tempDeviceLabel, // Using updated branding
+            name: tempDeviceLabel.isEmpty ? "New OKO" : tempDeviceLabel,
             type: tempSelectedMode,
-            installDate: Date(), // Timestamp: Now
+            installDate: Date(),
             lastReading: "---",
-            status: .learning
+            status: .learning,
+            batteryPercent: bleManager.deviceStatus?.battery ?? 100,
+            peripheralIdentifier: bleManager.connectedPeripheral?.identifier.uuidString
         )
         
         devices.append(newDevice)
-        currentDeviceIndex = devices.count - 1 // Switch to new device
+        currentDeviceIndex = devices.count - 1
         
-        // Save Changes
         saveDevices()
+        
+        // Disconnect BLE (device will go to sleep)
+        bleManager.disconnect()
         
         withAnimation { currentState = .dashboard }
     }
@@ -164,12 +259,52 @@ class SetupManager: ObservableObject {
         devices.remove(atOffsets: offsets)
         saveDevices()
         
-        // Safety check: if empty, go to welcome
         if devices.isEmpty {
             currentState = .welcome
         } else {
             currentDeviceIndex = 0
         }
+    }
+    
+    // MARK: - ROI Handling
+    
+    func saveROI(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat) {
+        print("🎯 Saving ROI: x=\(x), y=\(y), w=\(w), h=\(h)")
+        
+        // Send to ESP32
+        bleManager.sendROI(x: x, y: y, w: w, h: h)
+        
+        // Small delay to ensure it's sent before completing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.completeSetup()
+        }
+    }
+    
+    func saveROIs(dialX: CGFloat, dialY: CGFloat, dialW: CGFloat, dialH: CGFloat,
+                  spinnerX: CGFloat, spinnerY: CGFloat, spinnerW: CGFloat, spinnerH: CGFloat) {
+        print("🎯 Saving Dial ROI: x=\(dialX), y=\(dialY), w=\(dialW), h=\(dialH)")
+        print("🎯 Saving Spinner ROI: x=\(spinnerX), y=\(spinnerY), w=\(spinnerW), h=\(spinnerH)")
+        
+        // Send both ROIs to ESP32
+        bleManager.sendDualROI(
+            dialX: dialX, dialY: dialY, dialW: dialW, dialH: dialH,
+            spinnerX: spinnerX, spinnerY: spinnerY, spinnerW: spinnerW, spinnerH: spinnerH
+        )
+        
+        // Small delay to ensure it's sent before completing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.completeSetup()
+        }
+    }
+    
+    // MARK: - Camera Stream Control
+    
+    func startCameraStream() {
+        bleManager.startCameraStream()
+    }
+    
+    func stopCameraStream() {
+        bleManager.stopCameraStream()
     }
     
     // MARK: - DATA PERSISTENCE
@@ -182,17 +317,15 @@ class SetupManager: ObservableObject {
     }
     
     private func loadDevices() {
-        if let data = UserDefaults.standard.data(forKey: "SavedOkoDevices") {
-            if let decoded = try? JSONDecoder().decode([OkoDevice].self, from: data) {
-                self.devices = decoded
-            }
+        if let data = UserDefaults.standard.data(forKey: "SavedOkoDevices"),
+           let decoded = try? JSONDecoder().decode([OkoDevice].self, from: data) {
+            self.devices = decoded
         }
     }
     
     // MARK: - NAVIGATION HELPERS
     
     func devSkipForward() {
-        // Stop scanning if we are forcibly skipping
         if currentState == .scanning {
             bleManager.stopScanning()
         }
@@ -210,32 +343,26 @@ class SetupManager: ObservableObject {
     
     func goBack() {
         switch currentState {
-        case .modeSelection: currentState = .welcome
+        case .modeSelection:
+            currentState = .welcome
+            
         case .scanning:
             bleManager.stopScanning()
+            bleManager.disconnect()
             currentState = .modeSelection
-        case .labelInput: currentState = .scanning
-        case .wifiInput: currentState = .labelInput
-        case .cameraAlign: currentState = .wifiInput
-        default: break
+            
+        case .labelInput:
+            currentState = .scanning
+            
+        case .wifiInput:
+            currentState = .labelInput
+            
+        case .cameraAlign:
+            stopCameraStream()
+            currentState = .wifiInput
+            
+        default:
+            break
         }
-    }
-    
-    // New function to save the "Region of Interest" (ROI)
-    func saveROI(x: CGFloat, y: CGFloat, w: CGFloat, h: CGFloat) {
-        let roiData = [
-            "x": Float(x),
-            "y": Float(y),
-            "w": Float(w),
-            "h": Float(h)
-        ]
-        
-        print("Calculated ROI for ESP32: \(roiData)")
-        
-        // TODO: Send this to ESP32 via BLE
-        // bleManager.sendJSON("set_roi", data: roiData)
-        
-        // Finish Setup
-        completeSetup()
     }
 }
