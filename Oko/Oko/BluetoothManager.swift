@@ -29,7 +29,6 @@ struct WiFiNetwork: Identifiable, Equatable {
     let isSecure: Bool
     
     var signalStrength: Int {
-        // Convert RSSI to 0-3 bars
         switch rssi {
         case -50...0: return 3
         case -65 ..< -50: return 2
@@ -55,6 +54,7 @@ struct DeviceStatus: Codable {
     let photos: Int?
     let boots: Int?
     let version: String?
+    let mlEnabled: Bool?
 }
 
 enum WiFiConnectionStatus {
@@ -62,6 +62,12 @@ enum WiFiConnectionStatus {
     case connecting
     case connected(ip: String)
     case failed(error: String)
+}
+
+enum StreamingMode {
+    case none
+    case ble
+    case wifi(url: String)
 }
 
 // MARK: - BluetoothManager
@@ -73,7 +79,7 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var isScanning: Bool = false
     @Published var discoveredDevices: [CBPeripheral] = []
     @Published var isConnected: Bool = false
-    @Published var isReady: Bool = false  // All characteristics discovered
+    @Published var isReady: Bool = false
     
     // Data from device
     @Published var wifiNetworks: [WiFiNetwork] = []
@@ -81,6 +87,7 @@ class BluetoothManager: NSObject, ObservableObject {
     @Published var deviceStatus: DeviceStatus?
     @Published var currentFrame: UIImage?
     @Published var isStreaming: Bool = false
+    @Published var streamingMode: StreamingMode = .none
     
     // MARK: - Private Properties
     var centralManager: CBCentralManager?
@@ -97,11 +104,15 @@ class BluetoothManager: NSObject, ObservableObject {
     private var deviceConfigChar: CBCharacteristic?
     private var commandChar: CBCharacteristic?
     
-    // Frame assembly
+    // BLE Frame assembly
     private var frameBuffer: Data = Data()
     private var expectedFrameSize: Int = 0
     private var expectedPackets: Int = 0
     private var receivedPackets: Set<Int> = []
+    
+    // WiFi streaming
+    private var wifiStreamTimer: Timer?
+    private var wifiStreamURL: URL?
     
     private let targetNamePrefix = "Oko"
     
@@ -109,19 +120,15 @@ class BluetoothManager: NSObject, ObservableObject {
     
     override init() {
         super.init()
-        // Initialize CBCentralManager immediately so it's ready when we need it
-        // This also triggers the Bluetooth permission prompt early
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
     
     // MARK: - Scanning
     
     func startScanning() {
-        // Initialize central manager if needed
         if centralManager == nil {
             print("🔧 Initializing Bluetooth manager...")
             centralManager = CBCentralManager(delegate: self, queue: nil)
-            // Scanning will start automatically in centralManagerDidUpdateState
             return
         }
         
@@ -130,7 +137,6 @@ class BluetoothManager: NSObject, ObservableObject {
             return
         }
         
-        // Don't clear devices if we already have some and are already scanning
         if isScanning {
             print("🔍 Already scanning...")
             return
@@ -140,16 +146,15 @@ class BluetoothManager: NSObject, ObservableObject {
         discoveredDevices.removeAll()
         isScanning = true
         
-        // Scan for ALL devices first (more reliable for finding ESP32)
+        // Scan for ALL devices first (more reliable for ESP32)
         centralManager?.scanForPeripherals(
             withServices: nil,
             options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
         )
         
-        // After 1 second, also try with specific service UUID
+        // Also try specific service UUID
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             guard let self = self, self.isScanning else { return }
-            print("🔍 Also scanning for specific OKO service...")
             self.centralManager?.scanForPeripherals(
                 withServices: [OKOBLEConstants.serviceUUID],
                 options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
@@ -164,7 +169,6 @@ class BluetoothManager: NSObject, ObservableObject {
         print("🛑 Stopped scanning")
     }
     
-    /// Restart scanning (clears discovered devices)
     func restartScanning() {
         stopScanning()
         discoveredDevices.removeAll()
@@ -183,7 +187,6 @@ class BluetoothManager: NSObject, ObservableObject {
     func disconnect() {
         guard let peripheral = connectedPeripheral else { return }
         
-        // Stop streaming first
         if isStreaming {
             stopCameraStream()
         }
@@ -207,6 +210,9 @@ class BluetoothManager: NSObject, ObservableObject {
         isConnected = false
         isReady = false
         isStreaming = false
+        streamingMode = .none
+        
+        stopWiFiStreamTimer()
         
         wifiNetworks = []
         deviceStatus = nil
@@ -295,6 +301,8 @@ class BluetoothManager: NSObject, ObservableObject {
         
         print("📹 Stopping camera stream")
         isStreaming = false
+        streamingMode = .none
+        stopWiFiStreamTimer()
         peripheral.writeValue(data, for: char, type: .withResponse)
     }
     
@@ -322,6 +330,10 @@ class BluetoothManager: NSObject, ObservableObject {
         sendCommand("reset")
     }
     
+    func testML() {
+        sendCommand("test_ml")
+    }
+    
     private func sendCommand(_ command: String) {
         guard let char = commandChar, let peripheral = connectedPeripheral else {
             print("❌ Cannot send command - not ready")
@@ -332,6 +344,57 @@ class BluetoothManager: NSObject, ObservableObject {
         
         print("🔧 Sending command: \(command)")
         peripheral.writeValue(data, for: char, type: .withResponse)
+    }
+    
+    // MARK: - WiFi Streaming
+    
+    private func startWiFiStreaming(url: String) {
+        guard let streamURL = URL(string: url) else {
+            print("❌ Invalid WiFi stream URL: \(url)")
+            return
+        }
+        
+        print("📹 Starting WiFi streaming from: \(url)")
+        self.wifiStreamURL = streamURL
+        streamingMode = .wifi(url: url)
+        
+        // Fetch frames at ~10 FPS
+        wifiStreamTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.fetchWiFiFrame()
+        }
+    }
+    
+    private func stopWiFiStreamTimer() {
+        wifiStreamTimer?.invalidate()
+        wifiStreamTimer = nil
+        wifiStreamURL = nil
+    }
+    
+    private func fetchWiFiFrame() {
+        guard let url = wifiStreamURL else { return }
+        
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 2.0)
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                // Don't spam errors - WiFi streaming can have occasional hiccups
+                if self.isStreaming {
+                    print("📹 WiFi frame fetch error: \(error.localizedDescription)")
+                }
+                return
+            }
+            
+            guard let data = data,
+                  let image = UIImage(data: data) else {
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.currentFrame = image
+            }
+        }.resume()
     }
 }
 
@@ -347,7 +410,6 @@ extension BluetoothManager: CBCentralManagerDelegate {
         switch central.state {
         case .poweredOn:
             print("✅ Bluetooth is ON")
-            // Auto-start scanning when Bluetooth becomes ready
             if !isScanning {
                 startScanning()
             }
@@ -368,13 +430,11 @@ extension BluetoothManager: CBCentralManagerDelegate {
                        advertisementData: [String: Any],
                        rssi RSSI: NSNumber) {
         
-        // Filter by name prefix
         guard let name = peripheral.name,
               name.localizedCaseInsensitiveContains(targetNamePrefix) else {
             return
         }
         
-        // Avoid duplicates
         if !discoveredDevices.contains(where: { $0.identifier == peripheral.identifier }) {
             print("🔎 Discovered: \(name) (RSSI: \(RSSI))")
             DispatchQueue.main.async {
@@ -480,7 +540,6 @@ extension BluetoothManager: CBPeripheralDelegate {
             }
         }
         
-        // Check if we have all required characteristics
         let ready = wifiListChar != nil &&
                     wifiCredsChar != nil &&
                     cameraCtrlChar != nil &&
@@ -492,7 +551,6 @@ extension BluetoothManager: CBPeripheralDelegate {
             self.isReady = ready
             if ready {
                 print("✅ All characteristics discovered - device ready")
-                // Automatically request initial status and WiFi scan
                 self.requestStatus()
                 self.scanWiFiNetworks()
             }
@@ -551,7 +609,6 @@ extension BluetoothManager {
         }
         print("📶 Received WiFi list JSON: \(jsonString)")
         
-        // Parse JSON array of networks
         guard let jsonData = jsonString.data(using: .utf8),
               let networks = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else {
             print("❌ Failed to parse WiFi list JSON")
@@ -561,11 +618,9 @@ extension BluetoothManager {
         let parsedNetworks = networks.compactMap { dict -> WiFiNetwork? in
             guard let ssid = dict["ssid"] as? String,
                   let rssi = dict["rssi"] as? Int else { 
-                print("❌ Missing ssid or rssi in network dict: \(dict)")
                 return nil 
             }
             let secure = dict["secure"] as? Bool ?? true
-            print("✅ Parsed network: \(ssid) (\(rssi)dBm)")
             return WiFiNetwork(ssid: ssid, rssi: rssi, isSecure: secure)
         }.sorted { $0.rssi > $1.rssi }
         
@@ -573,7 +628,6 @@ extension BluetoothManager {
         
         DispatchQueue.main.async {
             self.wifiNetworks = parsedNetworks
-            print("📶 Updated wifiNetworks array, count: \(self.wifiNetworks.count)")
         }
     }
     
@@ -590,45 +644,34 @@ extension BluetoothManager {
             return
         }
         
-        print("📶 WiFi status parsed: \(dict)")
-        
         DispatchQueue.main.async {
-            // Check for new "status" field format
+            // Check "status" field (new firmware format)
             if let status = dict["status"] as? String {
                 switch status {
                 case "connecting":
-                    print("📶 WiFi connecting...")
                     self.wifiStatus = .connecting
-                    
                 case "connected":
-                    let ip = dict["ip"] as? String ?? "connected"
-                    print("✅ WiFi connected with IP: \(ip)")
+                    let ip = dict["ip"] as? String ?? "unknown"
                     self.wifiStatus = .connected(ip: ip)
-                    
                 case "failed":
                     let error = dict["error"] as? String ?? "Connection failed"
-                    print("❌ WiFi failed: \(error)")
                     self.wifiStatus = .failed(error: error)
-                    
                 default:
-                    print("⚠️ Unknown WiFi status: \(status)")
+                    break
                 }
                 return
             }
             
-            // Legacy format fallback
+            // Legacy format (saved/connected bool)
             if let saved = dict["saved"] as? Bool, saved == true {
-                print("✅ WiFi credentials saved on device - advancing to camera")
                 self.wifiStatus = .connected(ip: "saved")
                 return
             }
             
             if let connected = dict["connected"] as? Bool {
                 if connected, let ip = dict["ip"] as? String {
-                    print("✅ WiFi connected with IP: \(ip)")
                     self.wifiStatus = .connected(ip: ip)
                 } else if let error = dict["error"] as? String {
-                    print("❌ WiFi error: \(error)")
                     self.wifiStatus = .failed(error: error)
                 } else {
                     self.wifiStatus = .disconnected
@@ -638,17 +681,37 @@ extension BluetoothManager {
     }
     
     private func handleCameraFrame(data: Data) {
-        // Try to parse as string first (for header/end markers)
+        // Try to parse as string first (for control messages)
         if let str = String(data: data, encoding: .utf8) {
-            print("📷 Frame control message: '\(str)'")
+            print("📷 Frame message: '\(str.prefix(100))'")
             
+            // Check for streaming mode response (JSON)
+            if str.hasPrefix("{") {
+                if let jsonData = str.data(using: .utf8),
+                   let dict = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                    
+                    if let mode = dict["mode"] as? String {
+                        DispatchQueue.main.async {
+                            if mode == "wifi", let url = dict["url"] as? String {
+                                print("📹 Switching to WiFi streaming: \(url)")
+                                self.startWiFiStreaming(url: url)
+                            } else if mode == "ble" {
+                                print("📹 Using BLE streaming (fallback)")
+                                self.streamingMode = .ble
+                            }
+                        }
+                    }
+                }
+                return
+            }
+            
+            // BLE frame header: "FRAME:totalPackets:totalSize"
             if str.hasPrefix("FRAME:") {
-                // Header: "FRAME:totalPackets:totalSize"
                 let parts = str.split(separator: ":")
                 if parts.count == 3,
                    let packets = Int(parts[1]),
                    let size = Int(parts[2]) {
-                    print("📷 Starting frame: \(packets) packets, \(size) bytes")
+                    print("📷 BLE frame start: \(packets) packets, \(size) bytes")
                     frameBuffer = Data()
                     frameBuffer.reserveCapacity(size)
                     expectedPackets = packets
@@ -656,47 +719,46 @@ extension BluetoothManager {
                     receivedPackets.removeAll()
                 }
                 return
-            } else if str == "FRAME_END" {
-                // Frame complete
-                print("📷 Frame END received")
-                assembleFrame()
+            }
+            
+            // Frame end marker
+            if str == "FRAME_END" {
+                print("📷 BLE frame END received")
+                assembleBLEFrame()
                 return
             }
         }
         
-        // Binary data - frame chunk
-        print("📷 Received chunk: \(data.count) bytes")
-        processFrameChunk(data: data)
+        // Binary data - BLE frame chunk
+        processBLEFrameChunk(data: data)
     }
     
-    private func processFrameChunk(data: Data) {
+    private func processBLEFrameChunk(data: Data) {
         guard data.count > 2 else { return }
         
         // First 2 bytes are packet number
         let packetNum = Int(data[0]) << 8 | Int(data[1])
         let chunkData = data.subdata(in: 2..<data.count)
         
-        // For simplicity, just append (proper implementation would handle out-of-order)
         frameBuffer.append(chunkData)
         receivedPackets.insert(packetNum)
     }
     
-    private func assembleFrame() {
+    private func assembleBLEFrame() {
         guard frameBuffer.count > 0 else {
             print("❌ Empty frame buffer")
             return
         }
         
-        print("📷 Assembling frame: \(frameBuffer.count) bytes (\(receivedPackets.count)/\(expectedPackets) packets)")
+        print("📷 Assembling BLE frame: \(frameBuffer.count) bytes (\(receivedPackets.count)/\(expectedPackets) packets)")
         
-        // Try to decode JPEG
         if let image = UIImage(data: frameBuffer) {
             DispatchQueue.main.async {
                 self.currentFrame = image
             }
-            print("✅ Frame decoded successfully")
+            print("✅ BLE frame decoded successfully")
         } else {
-            print("❌ Failed to decode frame as JPEG")
+            print("❌ Failed to decode BLE frame as JPEG")
         }
         
         // Reset for next frame

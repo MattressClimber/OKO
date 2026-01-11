@@ -13,7 +13,7 @@ struct LabelInputView: View {
                 // MARK: - Header
                 HStack {
                     Button(action: { manager.goBack() }) {
-                        HStack(spacing: 6) {
+                    HStack(spacing: 6) {
                             Image(systemName: "chevron.left")
                             Text("Back")
                         }

@@ -1,51 +1,43 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var setupManager = SetupManager()
+    @StateObject private var manager = SetupManager()
     
     var body: some View {
         ZStack {
-            // Global Background
-            Color.black.edgesIgnoringSafeArea(.all)
+            // Background
+            Color("BackgroundTheme")
+                .ignoresSafeArea()
             
-            // Screen Switcher
-            switch setupManager.currentState {
+            // Main content based on current state
+            switch manager.currentState {
             case .welcome:
                 WelcomeView()
+                
             case .modeSelection:
                 ModeSelectionView()
+                
             case .scanning:
                 ScanningView()
-            case .labelInput:       // <--- ADDED THIS CASE
+                
+            case .labelInput:
                 LabelInputView()
+                
             case .wifiInput:
                 WifiInputView()
+                
             case .cameraAlign:
                 CameraAlignView()
+                
             case .dashboard:
                 DashboardView()
             }
-            
-            // RED DEV BUTTON (Always on top)
-            VStack {
-                Spacer()
-                Button(action: {
-                    withAnimation {
-                        setupManager.devSkipForward()
-                    }
-                }) {
-                    Text("DEV: SKIP STEP >>")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(8)
-                        .background(Color.red)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
-                .padding(.bottom, 20)
-            }
         }
-        .environmentObject(setupManager) // Inject Brain
-        .preferredColorScheme(.dark)
+        .environmentObject(manager)
+        .animation(.easeInOut(duration: 0.3), value: manager.currentState)
     }
+}
+
+#Preview {
+    ContentView()
 }

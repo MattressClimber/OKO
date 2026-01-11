@@ -205,6 +205,7 @@ struct CameraAlignView: View {
             if isDrawing && currentDrawRect.width > 10 {
                 let color: Color = currentROIType == .dial ? .green : .orange
                 let drawPath = RoundedRectangle(cornerRadius: 8).path(in: currentDrawRect)
+                
                 context.blendMode = .normal
                 context.stroke(drawPath, with: .color(color), style: StrokeStyle(lineWidth: 2, dash: [8, 4]))
             }
