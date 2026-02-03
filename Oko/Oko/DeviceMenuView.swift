@@ -6,6 +6,9 @@ struct DeviceMenuView: View {
     @State private var showDeleteConfirm = false
     @State private var deviceToDelete: OkoDevice?
     
+    // Dark mode toggle
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = true
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -21,6 +24,11 @@ struct DeviceMenuView: View {
                     }
                     
                     Spacer()
+                    
+                    // Settings section
+                    settingsSection
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
                     
                     // Add device button
                     addDeviceButton
@@ -100,6 +108,33 @@ struct DeviceMenuView: View {
             }
         }
         .listStyle(.plain)
+    }
+    
+    // MARK: - Settings Section
+    private var settingsSection: some View {
+        VStack(spacing: 12) {
+            // Dark mode toggle
+            HStack {
+                Image(systemName: isDarkMode ? "moon.fill" : "sun.max.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(isDarkMode ? .purple : .orange)
+                    .frame(width: 28)
+                
+                Text("Dark Mode")
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                
+                Spacer()
+                
+                Toggle("", isOn: $isDarkMode)
+                    .labelsHidden()
+                    .tint(.green)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(12)
+        }
     }
     
     // MARK: - Add Device Button
