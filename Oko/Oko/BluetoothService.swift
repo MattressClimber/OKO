@@ -6,6 +6,12 @@ import Combine
 
 @MainActor
 final class BluetoothService: NSObject, ObservableObject {
+
+    enum CameraStreamSignal: Equatable {
+        case unknown
+        case ble
+        case wifi(url: String?)
+    }
     
     // MARK: - Published Properties
     
@@ -18,7 +24,9 @@ final class BluetoothService: NSObject, ObservableObject {
     // Data from device
     @Published var wifiNetworks: [WiFiNetwork] = []
     @Published var wifiStatus: WiFiConnectionStatus = .disconnected
-    @Published var deviceStatus: DeviceStatus?
+    @Published var deviceStatus: BLEDeviceStatus?
+    @Published var cameraFrameChunk: Data?
+    @Published var cameraStreamSignal: CameraStreamSignal = .unknown
     
     // MARK: - Internal Properties
     
@@ -90,7 +98,10 @@ final class BluetoothService: NSObject, ObservableObject {
         isConnected = false
         isReady = false
         wifiNetworks = []
+        wifiStatus = .disconnected
         deviceStatus = nil
+        cameraFrameChunk = nil
+        cameraStreamSignal = .unknown
     }
     
     // MARK: - Commands
@@ -142,6 +153,20 @@ final class BluetoothService: NSObject, ObservableObject {
     func requestStatus() {
         sendCommand("get_status")
     }
+
+    func startCameraStream() {
+        cameraStreamSignal = .unknown
+        sendCameraControl("start_stream")
+    }
+
+    func stopCameraStream() {
+        cameraStreamSignal = .unknown
+        sendCameraControl("stop_stream")
+    }
+
+    func setFlash(on: Bool) {
+        sendCameraControl(on ? "flash_on" : "flash_off")
+    }
     
     private func sendCommand(_ command: String) {
         guard let char = characteristics[BLEConstants.commandUUID],
@@ -149,6 +174,21 @@ final class BluetoothService: NSObject, ObservableObject {
         
         guard let data = command.data(using: .utf8) else { return }
         peripheral.writeValue(data, for: char, type: .withResponse)
+    }
+
+    private func sendCameraControl(_ command: String) {
+        guard let peripheral = connectedPeripheral,
+              let data = command.data(using: .utf8) else { return }
+
+        // Prefer the dedicated camera control characteristic, but fall back to command.
+        if let cameraControl = characteristics[BLEConstants.cameraCtrlUUID] {
+            peripheral.writeValue(data, for: cameraControl, type: .withResponse)
+            return
+        }
+
+        if let commandChar = characteristics[BLEConstants.commandUUID] {
+            peripheral.writeValue(data, for: commandChar, type: .withResponse)
+        }
     }
 }
 
@@ -241,7 +281,8 @@ extension BluetoothService: CBPeripheralDelegate {
                 let notifyUUIDs = [
                     BLEConstants.wifiListUUID,
                     BLEConstants.wifiStatusUUID,
-                    BLEConstants.deviceStatusUUID
+                    BLEConstants.deviceStatusUUID,
+                    BLEConstants.cameraFrameUUID
                 ]
                 
                 if notifyUUIDs.contains(char.uuid) {
@@ -279,6 +320,12 @@ extension BluetoothService: CBPeripheralDelegate {
                 handleWiFiStatus(data: data)
             case BLEConstants.deviceStatusUUID:
                 handleDeviceStatus(data: data)
+            case BLEConstants.cameraFrameUUID:
+                if let signal = parseCameraStreamSignal(from: data) {
+                    cameraStreamSignal = signal
+                } else {
+                    cameraFrameChunk = data
+                }
             default:
                 break
             }
@@ -335,10 +382,30 @@ extension BluetoothService {
     private func handleDeviceStatus(data: Data) {
         guard let jsonString = String(data: data, encoding: .utf8),
               let jsonData = jsonString.data(using: .utf8),
-              let status = try? JSONDecoder().decode(DeviceStatus.self, from: jsonData) else {
+              let status = try? JSONDecoder().decode(BLEDeviceStatus.self, from: jsonData) else {
             return
         }
         
         deviceStatus = status
+    }
+
+    private func parseCameraStreamSignal(from data: Data) -> CameraStreamSignal? {
+        guard let rawText = String(data: data, encoding: .utf8) else { return nil }
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.first == "{" else { return nil }
+        guard let jsonData = text.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+              let mode = dict["mode"] as? String else {
+            return nil
+        }
+
+        switch mode.lowercased() {
+        case "ble":
+            return .ble
+        case "wifi":
+            return .wifi(url: dict["url"] as? String)
+        default:
+            return nil
+        }
     }
 }

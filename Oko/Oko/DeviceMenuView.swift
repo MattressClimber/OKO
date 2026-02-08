@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct DeviceMenuView: View {
-    @EnvironmentObject var manager: SetupManager
+    @EnvironmentObject var setupViewModel: SetupFlowViewModel
+    @EnvironmentObject var persistenceService: PersistenceService
     @Binding var showMenu: Bool
     @State private var showDeleteConfirm = false
     @State private var deviceToDelete: OkoDevice?
@@ -17,7 +18,7 @@ struct DeviceMenuView: View {
                 
                 VStack(spacing: 0) {
                     // Device list
-                    if manager.devices.isEmpty {
+                    if persistenceService.devices.isEmpty {
                         emptyState
                     } else {
                         deviceList
@@ -51,8 +52,8 @@ struct DeviceMenuView: View {
             Button("Cancel", role: .cancel) { }
             Button("Delete", role: .destructive) {
                 if let device = deviceToDelete,
-                   let index = manager.devices.firstIndex(where: { $0.id == device.id }) {
-                    manager.deleteDevice(at: IndexSet(integer: index))
+                   let index = persistenceService.devices.firstIndex(where: { $0.id == device.id }) {
+                    persistenceService.deleteDevices(at: IndexSet(integer: index))
                 }
             }
         } message: {
@@ -70,11 +71,13 @@ struct DeviceMenuView: View {
                 .foregroundStyle(.secondary)
             
             Text("No Devices")
-                .font(.title2.weight(.semibold))
+                .font(Font(UIFont.systemFont(ofSize: 22, weight: .semibold)))
                 .foregroundStyle(.primary)
             
-            Text("Add your first OKO device to get started")
-                .font(.subheadline)
+            (Text("Add your first ") + 
+             Text("OKO").font(.okoBrand(size: 15)) +
+             Text(" device to get started"))
+                .font(Font(UIFont.systemFont(ofSize: 15, weight: .regular)))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             
@@ -86,14 +89,14 @@ struct DeviceMenuView: View {
     // MARK: - Device List
     private var deviceList: some View {
         List {
-            ForEach(manager.devices) { device in
+            ForEach(persistenceService.devices) { device in
                 DeviceRow(
                     device: device,
-                    isSelected: manager.activeDevice?.id == device.id
+                    isSelected: persistenceService.activeDevice?.id == device.id
                 )
                 .onTapGesture {
-                    if let index = manager.devices.firstIndex(where: { $0.id == device.id }) {
-                        manager.currentDeviceIndex = index
+                    if let index = persistenceService.devices.firstIndex(where: { $0.id == device.id }) {
+                        persistenceService.currentDeviceIndex = index
                         showMenu = false
                     }
                 }
@@ -121,7 +124,7 @@ struct DeviceMenuView: View {
                     .frame(width: 28)
                 
                 Text("Dark Mode")
-                    .font(.body)
+                    .font(Font(UIFont.systemFont(ofSize: 17, weight: .regular)))
                     .foregroundStyle(.primary)
                 
                 Spacer()
@@ -142,14 +145,14 @@ struct DeviceMenuView: View {
         Button(action: {
             showMenu = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                manager.startNewSetup()
+                setupViewModel.startNewSetup()
             }
         }) {
             HStack {
                 Image(systemName: "plus.circle.fill")
                 Text("Add New Device")
             }
-            .font(.headline)
+            .font(Font(UIFont.systemFont(ofSize: 17, weight: .semibold)))
             .foregroundColor(.black)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
@@ -180,19 +183,19 @@ struct DeviceRow: View {
             // Info
             VStack(alignment: .leading, spacing: 4) {
                 Text(device.name)
-                    .font(.body.weight(.medium))
+                    .font(Font(UIFont.systemFont(ofSize: 17, weight: .medium)))
                     .foregroundStyle(.primary)
                 
                 HStack(spacing: 8) {
-                    Text(device.type)
-                        .font(.caption)
+                    Text(device.type.rawValue)
+                        .font(Font(UIFont.systemFont(ofSize: 12, weight: .regular)))
                         .foregroundStyle(.secondary)
                     
                     Text("•")
                         .foregroundStyle(.secondary)
                     
                     Text(device.status.rawValue.capitalized)
-                        .font(.caption)
+                        .font(Font(UIFont.systemFont(ofSize: 12, weight: .regular)))
                         .foregroundStyle(statusColor)
                 }
             }
@@ -210,11 +213,7 @@ struct DeviceRow: View {
     }
     
     private var iconName: String {
-        switch device.type.lowercased() {
-        case "water": return "drop.fill"
-        case "gauge": return "gauge"
-        default: return "sensor.tag.radiowaves.forward"
-        }
+        device.type.icon
     }
     
     private var statusColor: Color {

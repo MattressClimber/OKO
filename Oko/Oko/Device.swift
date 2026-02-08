@@ -45,9 +45,10 @@ struct OkoDevice: Identifiable, Equatable, Codable {
     }
 }
 
-// MARK: - Device Status (from BLE)
+// MARK: - BLE Device Status (from BLE responses)
+// Renamed to avoid conflict with OkoDevice.DeviceStatus enum
 
-struct DeviceStatus: Codable {
+struct BLEDeviceStatus: Codable {
     let label: String?
     let type: String?
     let battery: Int?

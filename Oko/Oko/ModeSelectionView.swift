@@ -1,75 +1,88 @@
 import SwiftUI
 
 struct ModeSelectionView: View {
-    @EnvironmentObject var manager: SetupManager
-
+    @EnvironmentObject var viewModel: SetupFlowViewModel
+    
     var body: some View {
         ZStack {
-            // Dynamic theme background
             Color("BackgroundTheme")
                 .ignoresSafeArea()
-
+            
             VStack(spacing: 20) {
-                // HEADER
-                HStack {
-                    Button(action: { manager.goBack() }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        // Adaptive so it doesn't disappear in light mode
-                        .foregroundStyle(.secondary)
-                    }
-                    Spacer()
+                HeaderView(title: "Back") {
+                    viewModel.goBack()
                 }
-                .padding()
-
+                
                 Spacer()
-
+                
                 Text("What are we watching?")
-                    .font(.title2)
+                    .font(Font(UIFont.systemFont(ofSize: 22, weight: .regular)))
                     .foregroundStyle(.primary)
-
+                
                 HStack(spacing: 20) {
-                    // Water Meter
-                    Button(action: { manager.selectMode("Water") }) {
-                        VStack(spacing: 10) {
-                            Image(systemName: "drop.fill")
-                                .font(.largeTitle)
-                            Text("Water Meter")
-                                .font(.headline)
-                        }
-                        .frame(width: 140, height: 160)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(12)
-                        .foregroundStyle(.primary)
+                    ModeButton(
+                        title: OkoDevice.DeviceType.water.rawValue,
+                        icon: OkoDevice.DeviceType.water.icon
+                    ) {
+                        viewModel.selectMode(.water)
                     }
-                    .buttonStyle(.plain)
-
-                    // Pressure Gauge
-                    Button(action: { manager.selectMode("Gauge") }) {
-                        VStack(spacing: 10) {
-                            Image(systemName: "gauge")
-                                .font(.largeTitle)
-                            Text("Pressure")
-                                .font(.headline)
-                        }
-                        .frame(width: 140, height: 160)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(12)
-                        .foregroundStyle(.primary)
+                    
+                    ModeButton(
+                        title: "Pressure",
+                        icon: OkoDevice.DeviceType.gauge.icon
+                    ) {
+                        viewModel.selectMode(.gauge)
                     }
-                    .buttonStyle(.plain)
                 }
-
+                
                 Spacer()
             }
         }
     }
 }
 
-#Preview {
-    ModeSelectionView()
-        .environmentObject(SetupManager())
-        .background(Color("BackgroundTheme"))
+// MARK: - Mode Button
+
+private struct ModeButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(Font(UIFont.systemFont(ofSize: 34, weight: .regular)))
+                Text(title)
+                    .font(Font(UIFont.systemFont(ofSize: 17, weight: .semibold)))
+            }
+            .frame(width: 140, height: 160)
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(12)
+            .foregroundStyle(.primary)
+        }
+        .buttonStyle(.plain)
+    }
 }
+
+// MARK: - Header View
+
+private struct HeaderView: View {
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    Image(systemName: "chevron.left")
+                    Text(title)
+                }
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding()
+    }
+}
+

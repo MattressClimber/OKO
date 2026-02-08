@@ -78,11 +78,17 @@ final class SetupFlowViewModel: ObservableObject {
                     self.isConnectingToWiFi = false
                     self.wifiConnectionError = nil
                     
-                    if self.currentState == .wifiInput &&
-                       ip != "saved" &&
-                       ip != "unknown" &&
-                       ip.contains(".") {
-                        withAnimation { self.currentState = .cameraAlign }
+                    // Automatically advance to camera view when WiFi is connected
+                    if self.currentState == .wifiInput {
+                        print("✅ WiFi connected with IP: \(ip) - advancing to camera setup")
+                        
+                        // Short delay to let the connection stabilize
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(500))
+                            withAnimation { 
+                                self.currentState = .cameraAlign
+                            }
+                        }
                     }
                     
                 case .failed(let error):
@@ -143,7 +149,7 @@ final class SetupFlowViewModel: ObservableObject {
         bluetoothService?.scanWiFiNetworks()
         
         Task {
-            try? await Task.sleep(for: .seconds(10))
+            try? await Task.sleep(for: .seconds(5))
             isRefreshingWiFi = false
         }
     }

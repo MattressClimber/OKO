@@ -1,23 +1,18 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    @EnvironmentObject var manager: SetupManager
-    
-    // Access the same global setting
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = true
+    @EnvironmentObject var viewModel: SetupFlowViewModel
+    @AppStorage("isDarkMode") private var isDarkMode = true
     
     var body: some View {
         ZStack {
-            // MARK: - BACKGROUND
-            Color("BackgroundTheme") // Make sure this is set in Assets!
-                .edgesIgnoringSafeArea(.all)
-                .animation(.easeInOut, value: isDarkMode)
+            Color("BackgroundTheme")
+                .ignoresSafeArea()
             
-            // MARK: - MAIN CONTENT
             VStack(spacing: 30) {
                 Spacer()
                 
-                Image("OKOlogo") // Make sure this has Any/Dark variants in Assets!
+                Image("OKOlogo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 220, height: 220)
@@ -30,14 +25,14 @@ struct WelcomeView: View {
                 
                 VStack(spacing: 15) {
                     Text("Tap anywhere to start setup")
-                        .font(.okoBold(size: 18))
+                        .font(Font(UIFont.systemFont(ofSize: 18, weight: .regular)))
                         .foregroundColor(.primary.opacity(0.8))
                     
                     HStack(spacing: 8) {
                         Image(systemName: "antenna.radiowaves.left.and.right")
                         Text("Bluetooth access is required to find devices")
                     }
-                    .font(.okoItalic(size: 14))
+                    .font(Font(UIFont.systemFont(ofSize: 14, weight: .regular)))
                     .foregroundColor(.gray)
                 }
                 .padding(.bottom, 50)
@@ -45,19 +40,17 @@ struct WelcomeView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation {
-                    manager.devSkipForward()
+                    viewModel.devSkipForward()
                 }
             }
             
-            // MARK: - THEME TOGGLE BUTTON
             VStack {
                 HStack {
                     Spacer()
                     
-                    Button(action: {
-                        // Toggle global state
+                    Button {
                         isDarkMode.toggle()
-                    }) {
+                    } label: {
                         Image(systemName: isDarkMode ? "moon.fill" : "sun.max.fill")
                             .font(.system(size: 24))
                             .foregroundColor(.primary)
@@ -71,6 +64,7 @@ struct WelcomeView: View {
                 Spacer()
             }
         }
-        // NOTE: We REMOVED .preferredColorScheme from here because OkoApp handles it now.
     }
 }
+
+
