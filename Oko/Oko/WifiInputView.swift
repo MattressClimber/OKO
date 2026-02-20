@@ -1,7 +1,5 @@
 import SwiftUI
 
-import SwiftUI
-
 struct WifiInputView: View {
     @EnvironmentObject var viewModel: SetupFlowViewModel
     @EnvironmentObject var bluetoothService: BluetoothService
@@ -10,6 +8,11 @@ struct WifiInputView: View {
     @State private var refreshTimer: Timer?
     
     private var isRefreshing: Bool { viewModel.isRefreshingWiFi }
+    private var shouldAutoRefreshWiFi: Bool {
+        !viewModel.isConnectingToWiFi &&
+        !isPasswordFocused &&
+        viewModel.selectedWiFiNetwork == nil
+    }
     
     var body: some View {
         ZStack {
@@ -39,6 +42,7 @@ struct WifiInputView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.selectedWiFiNetwork != nil)
         .onAppear {
+            showPassword = false
             // Initial scan
             if bluetoothService.wifiNetworks.isEmpty {
                 viewModel.refreshWiFiNetworks()
@@ -47,7 +51,7 @@ struct WifiInputView: View {
             // Start periodic refresh every 8 seconds
             refreshTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { _ in
                 Task { @MainActor in
-                    if !viewModel.isConnectingToWiFi {
+                    if shouldAutoRefreshWiFi {
                         print("🔄 Auto-refreshing WiFi networks...")
                         viewModel.refreshWiFiNetworks()
                     }
@@ -186,9 +190,11 @@ struct WifiInputView: View {
                                 if viewModel.selectedWiFiNetwork?.ssid == network.ssid {
                                     viewModel.selectedWiFiNetwork = nil
                                     viewModel.wifiPassword = ""
+                                    showPassword = false
                                 } else {
                                     viewModel.selectedWiFiNetwork = network
                                     viewModel.wifiPassword = ""
+                                    showPassword = false
                                     if network.isSecure {
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                             isPasswordFocused = true
@@ -203,6 +209,7 @@ struct WifiInputView: View {
                 .padding(.bottom, viewModel.selectedWiFiNetwork != nil ? 280 : 40)
             }
             .onChange(of: viewModel.selectedWiFiNetwork) { _, selected in
+                showPassword = false
                 if let ssid = selected?.ssid {
                     withAnimation { proxy.scrollTo(ssid, anchor: .center) }
                 }
@@ -233,32 +240,33 @@ struct WifiInputView: View {
                         .foregroundColor(.secondary)
                         .frame(width: 20)
                     
-                    if showPassword {
-                        TextField("Password", text: $viewModel.wifiPassword)
-                            .focused($isPasswordFocused)
-                            .submitLabel(.join)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .onSubmit {
-                                if !viewModel.wifiPassword.isEmpty {
-                                    viewModel.connectToSelectedWiFi()
-                                }
-                            }
-                    } else {
-                        SecureField("Password", text: $viewModel.wifiPassword)
-                            .focused($isPasswordFocused)
-                            .submitLabel(.join)
-                            .onSubmit {
-                                if !viewModel.wifiPassword.isEmpty {
-                                    viewModel.connectToSelectedWiFi()
-                                }
-                            }
+                    Group {
+                        if showPassword {
+                            TextField("Password", text: $viewModel.wifiPassword)
+                        } else {
+                            SecureField("Password", text: $viewModel.wifiPassword)
+                        }
+                    }
+                    .id(showPassword ? "visible-password" : "secure-password")
+                    .focused($isPasswordFocused)
+                    .submitLabel(.join)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .textContentType(.password)
+                    .onSubmit {
+                        if !viewModel.wifiPassword.isEmpty {
+                            viewModel.connectToSelectedWiFi()
+                        }
                     }
                     
-                    Button { showPassword.toggle() } label: {
+                    Button {
+                        showPassword.toggle()
+                        isPasswordFocused = true
+                    } label: {
                         Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
                             .foregroundColor(.secondary)
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)

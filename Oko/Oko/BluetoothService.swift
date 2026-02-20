@@ -36,6 +36,9 @@ final class BluetoothService: NSObject, ObservableObject {
     
     private var centralManager: CBCentralManager?
     private var characteristics: [CBUUID: CBCharacteristic] = [:]
+    private var pendingWifiNetworks: [WiFiNetwork] = []
+    private var isAccumulatingWifi = false
+    private var wifiChunkFinalizeTask: Task<Void, Never>?
     
     // MARK: - Initialization
     
@@ -93,7 +96,11 @@ final class BluetoothService: NSObject, ObservableObject {
     }
     
     private func cleanup() {
+        wifiChunkFinalizeTask?.cancel()
+        wifiChunkFinalizeTask = nil
         characteristics.removeAll()
+        pendingWifiNetworks.removeAll()
+        isAccumulatingWifi = false
         connectedPeripheral = nil
         isConnected = false
         isReady = false
@@ -111,6 +118,10 @@ final class BluetoothService: NSObject, ObservableObject {
     }
     
     func clearWiFiNetworks() {
+        wifiChunkFinalizeTask?.cancel()
+        wifiChunkFinalizeTask = nil
+        pendingWifiNetworks.removeAll()
+        isAccumulatingWifi = false
         wifiNetworks.removeAll()
     }
     
@@ -336,10 +347,67 @@ extension BluetoothService: CBPeripheralDelegate {
 // MARK: - Data Handlers
 
 extension BluetoothService {
+
+    private func scheduleWifiChunkFinalize() {
+        wifiChunkFinalizeTask?.cancel()
+        wifiChunkFinalizeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+            self?.finalizePendingWiFiScan(trigger: "timeout")
+        }
+    }
+
+    private func finalizePendingWiFiScan(trigger: String) {
+        guard isAccumulatingWifi || !pendingWifiNetworks.isEmpty else { return }
+        isAccumulatingWifi = false
+        wifiChunkFinalizeTask?.cancel()
+        wifiChunkFinalizeTask = nil
+        wifiNetworks = pendingWifiNetworks.sorted { $0.rssi > $1.rssi }
+        print("📶 WiFi scan finalized (\(trigger)): \(wifiNetworks.count) networks")
+    }
     
     private func handleWiFiList(data: Data) {
-        guard let jsonString = String(data: data, encoding: .utf8),
-              let jsonData = jsonString.data(using: .utf8),
+        guard let text = String(data: data, encoding: .utf8) else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Chunked protocol: WIFI_START:<count>, then individual JSON objects, then WIFI_END
+        if trimmed.hasPrefix("WIFI_START:") {
+            pendingWifiNetworks.removeAll()
+            isAccumulatingWifi = true
+            wifiNetworks.removeAll()
+            scheduleWifiChunkFinalize()
+            print("📶 WiFi scan started")
+            return
+        }
+        
+        if trimmed == "WIFI_END" {
+            finalizePendingWiFiScan(trigger: "WIFI_END")
+            return
+        }
+        
+        if isAccumulatingWifi, trimmed.hasPrefix("{") {
+            // Parse individual network JSON
+            if let jsonData = trimmed.data(using: .utf8),
+               let dict = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+               let ssid = dict["ssid"] as? String,
+               let rssi = dict["rssi"] as? Int {
+                let secure = dict["secure"] as? Bool ?? true
+                let network = WiFiNetwork(ssid: ssid, rssi: rssi, isSecure: secure)
+                if let existingIndex = pendingWifiNetworks.firstIndex(where: { $0.ssid == ssid }) {
+                    if rssi > pendingWifiNetworks[existingIndex].rssi {
+                        pendingWifiNetworks[existingIndex] = network
+                    }
+                } else {
+                    pendingWifiNetworks.append(network)
+                }
+                wifiNetworks = pendingWifiNetworks.sorted { $0.rssi > $1.rssi }
+                scheduleWifiChunkFinalize()
+            }
+            return
+        }
+        
+        // Legacy: full JSON array in one notification (backwards compatibility)
+        guard let jsonData = trimmed.data(using: .utf8),
               let networks = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] else {
             return
         }
@@ -353,6 +421,10 @@ extension BluetoothService {
             return WiFiNetwork(ssid: ssid, rssi: rssi, isSecure: secure)
         }.sorted { $0.rssi > $1.rssi }
         
+        wifiChunkFinalizeTask?.cancel()
+        wifiChunkFinalizeTask = nil
+        pendingWifiNetworks = parsedNetworks
+        isAccumulatingWifi = false
         wifiNetworks = parsedNetworks
     }
     

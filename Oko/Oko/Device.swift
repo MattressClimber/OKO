@@ -49,16 +49,42 @@ struct OkoDevice: Identifiable, Equatable, Codable {
 // Renamed to avoid conflict with OkoDevice.DeviceStatus enum
 
 struct BLEDeviceStatus: Codable {
+    // Fields from v2.5 firmware
+    let battery: Int?
+    let wifiConfigured: Bool?
+    let wifiConnected: Bool?
+    let ssid: String?
+    let ip: String?
+    let roiConfigured: Bool?
+    let lastReading: Int?
+    let mlEnabled: Bool?
+    let version: String?
+    
+    // Legacy fields from v1.x firmware (optional for backwards compat)
     let label: String?
     let type: String?
-    let battery: Int?
-    let reading: Int?
     let baselineComplete: Bool?
     let baselineDays: Int?
-    let wifiConfigured: Bool?
-    let roiConfigured: Bool?
     let photos: Int?
     let boots: Int?
-    let version: String?
-    let mlEnabled: Bool?
+    
+    // Allow decoding to succeed even if fields are missing
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        battery = try container.decodeIfPresent(Int.self, forKey: .battery)
+        wifiConfigured = try container.decodeIfPresent(Bool.self, forKey: .wifiConfigured)
+        wifiConnected = try container.decodeIfPresent(Bool.self, forKey: .wifiConnected)
+        ssid = try container.decodeIfPresent(String.self, forKey: .ssid)
+        ip = try container.decodeIfPresent(String.self, forKey: .ip)
+        roiConfigured = try container.decodeIfPresent(Bool.self, forKey: .roiConfigured)
+        lastReading = try container.decodeIfPresent(Int.self, forKey: .lastReading)
+        mlEnabled = try container.decodeIfPresent(Bool.self, forKey: .mlEnabled)
+        version = try container.decodeIfPresent(String.self, forKey: .version)
+        label = try container.decodeIfPresent(String.self, forKey: .label)
+        type = try container.decodeIfPresent(String.self, forKey: .type)
+        baselineComplete = try container.decodeIfPresent(Bool.self, forKey: .baselineComplete)
+        baselineDays = try container.decodeIfPresent(Int.self, forKey: .baselineDays)
+        photos = try container.decodeIfPresent(Int.self, forKey: .photos)
+        boots = try container.decodeIfPresent(Int.self, forKey: .boots)
+    }
 }
